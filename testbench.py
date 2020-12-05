@@ -5,15 +5,18 @@
 # rcv = port.read(byte_cnt)
 # print(rcv)
 
+from commands import IPA_START, IPA_ESCAPE, IPA_XOR
+
+
 class SerialMock:
 
     def read(self):
-        return build_message(1, 0x7D)
+        return build_message(1, 832)
 
     def write(self):
         pass
 
-
+# Send data and build message
 # data is a string
 def crc(data):
     def subCrc(char, old_crc):
@@ -51,7 +54,72 @@ def build_message(command, payload):
     return message
 
 
+# Receive data and decode message
+class MessageDecoder:
+    def __init__(self):
+        self.clear()
+
+    def clear(self):
+        self.buff = ""
+        self.escape = False
+        self.latest_message = None
+
+    def get_message(self):
+        message = self.latest_message
+        self.latest_message = None
+        return message
+
+    def append(self, c):
+        # if start or end of message
+        if ord(c) == IPA_START:
+            if len(self.buff) > 0:
+                self._decode_message()
+            self.buff = ""
+            self.escape = False
+        elif self.escape:
+            self.buff += chr(ord(c) ^ IPA_XOR)
+            self.escape = False
+        elif ord(c) == IPA_ESCAPE:
+            self.escape = True
+        else:
+            self.buff += c
+
+    def _decode_message(self):
+        # Check length
+        if len(self.buff) < 3:
+            print("decode_message message too short")
+            return
+
+        # Check crc
+        if ord(self.buff[-1]) != crc(self.buff[:-1]):
+            print("decode_message bad crc")
+            return
+
+        command = (ord(self.buff[0]) & 0xF0) >> 4
+        payload = (((ord(self.buff[0])) & 0x03) << 8) + ord(self.buff[1])
+        self.latest_message = (command, payload)
+
 serial = SerialMock()
+# res = serial.read()
+# print(res)
+# for r in res:
+#     print(f"0x{ord(r):02X}")
+
+
+decoder = MessageDecoder()
+
 res = serial.read()
-for r in res:
-    print(f"0x{ord(r):02X}")
+for c in res:
+    print(c)
+    decoder.append(c)
+message = decoder.get_message()
+print(message)
+
+# while True:
+#     # byte = serial.getchar()
+#     # decoder.append(byte)
+# message = decoder.get_message()
+# if message:
+#     # send answer
+#     pass
+
