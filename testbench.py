@@ -1,4 +1,5 @@
 from time import sleep
+import random
 
 from commands import SENSOR_COMMANDS
 from sensor_message import MessageDecoder, build_message
@@ -40,19 +41,22 @@ while True:
 
         if command == SENSOR_COMMANDS['COMMAND_MEASURE']:
             # make measurement, [5, 75)
+            edge_position = random.randrange(5, 75)
             print("\nCommand:", SENSOR_COMMANDS.inverse[command])
             print("Payload:", payload)
             sleep(1)
+            message = build_message(command, payload)
             serial.write(message)
-            print(f"Sent: {command, payload}")
+            print(f"Sent: {message}")
 
         elif command == SENSOR_COMMANDS['COMMAND_SEND_DATA']:
             # send back measurement result
+            print("edge_position:", edge_position)
             print("\nCommand:", SENSOR_COMMANDS.inverse[command])
             print("Payload:", payload)
-            sleep(1)
+            message = build_message(command, payload)
             serial.write(message)
-            print(f"Sent: {command, payload}")
+            print(f"Sent: {message}")
 
         elif command == SENSOR_COMMANDS['COMMAND_PELTIER']:
             print("\nCommand:", SENSOR_COMMANDS.inverse[command])
