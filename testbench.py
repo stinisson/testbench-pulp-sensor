@@ -1,125 +1,41 @@
-# import serial
+from time import sleep
 
-# port = serial.Serial("/dev/serial0", baudrate=57600, timeout=1.0)
-# byte_cnt = port.write("Hello".encode())
-# rcv = port.read(byte_cnt)
-# print(rcv)
+from commands import SENSOR_COMMANDS
+from sensor_message import MessageDecoder, build_message
 
-from commands import IPA_START, IPA_ESCAPE, IPA_XOR
+# print(SENSOR_COMMANDS['COMMAND_SEND_DATA'])
+# print(SENSOR_COMMANDS.inverse[0])
 
 
 class SerialMock:
-
     def read(self):
-        return build_message(1, 832)
+        return build_message(0, 832)
 
-    def write(self):
-        pass
+    def write(self, command, payload):
+        # serial mock sending to IPA (command, payload)
+        build_message(command, payload)
 
-# Send data and build message
-# data is a string
-def crc(data):
-    def subCrc(char, old_crc):
-        new_crc = old_crc ^ ord(char)
-        for i in range(0, 8):
-            if new_crc & 0x01:
-                new_crc = (new_crc // 2) ^ 0x8C
-            else:
-                new_crc //= 2
-        return new_crc
-
-    mycrc = 0
-    for char in data:
-        mycrc = subCrc(char, mycrc)
-    return mycrc
-
-
-def build_message(command, payload):
-    byte_1 = ((command & 0xF) << 4) | ((payload & 0x0300) >> 8)
-    byte_2 = payload & 0xFF
-    byte_crc = crc([chr(byte_1), chr(byte_2)])
-
-    IPA_START = 0x12
-    IPA_ESCAPE = 0x7D
-    IPA_XOR = 0x20
-
-    message = chr(IPA_START)
-    for byte in [byte_1, byte_2, byte_crc]:
-        if byte in [IPA_ESCAPE, IPA_START]:
-            message += chr(IPA_ESCAPE)
-            message += chr(byte ^ IPA_XOR)
-        else:
-            message += chr(byte)
-    message += chr(IPA_START)
-    return message
-
-
-# Receive data and decode message
-class MessageDecoder:
-    def __init__(self):
-        self.clear()
-
-    def clear(self):
-        self.buff = ""
-        self.escape = False
-        self.latest_message = None
-
-    def get_message(self):
-        message = self.latest_message
-        self.latest_message = None
-        return message
-
-    def append(self, c):
-        # if start or end of message
-        if ord(c) == IPA_START:
-            if len(self.buff) > 0:
-                self._decode_message()
-            self.buff = ""
-            self.escape = False
-        elif self.escape:
-            self.buff += chr(ord(c) ^ IPA_XOR)
-            self.escape = False
-        elif ord(c) == IPA_ESCAPE:
-            self.escape = True
-        else:
-            self.buff += c
-
-    def _decode_message(self):
-        # Check length
-        if len(self.buff) < 3:
-            print("decode_message message too short")
-            return
-
-        # Check crc
-        if ord(self.buff[-1]) != crc(self.buff[:-1]):
-            print("decode_message bad crc")
-            return
-
-        command = (ord(self.buff[0]) & 0xF0) >> 4
-        payload = (((ord(self.buff[0])) & 0x03) << 8) + ord(self.buff[1])
-        self.latest_message = (command, payload)
 
 serial = SerialMock()
-# res = serial.read()
-# print(res)
-# for r in res:
-#     print(f"0x{ord(r):02X}")
-
-
 decoder = MessageDecoder()
+while True:
+    received = serial.read()
+    print("\n\nReceived message:", received)
+    for c in received:
+        decoder.append(c)
+    message = decoder.get_message()
 
-res = serial.read()
-for c in res:
-    print(c)
-    decoder.append(c)
-message = decoder.get_message()
-print(message)
+    if message:
+        print("Decoded message:", message)
+        command, payload = message[0], message[1]
 
-# while True:
-#     # byte = serial.getchar()
-#     # decoder.append(byte)
-# message = decoder.get_message()
-# if message:
-#     # send answer
-#     pass
+        if command == SENSOR_COMMANDS['COMMAND_MEASURE']:
+            print("\nCommand:", command, SENSOR_COMMANDS.inverse[0])
+            print("Payload:", payload)
+            sleep(1)
+            serial.write(command, payload)
+            print(f"Sent: {command, payload}")
 
+        if command == SENSOR_COMMANDS["COMMAND_SHUTDOWN"]:
+            print("End")
+            break
