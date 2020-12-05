@@ -10,6 +10,8 @@ class SerialMock:
     def __init__(self):
         self.test_cases = [(SENSOR_COMMANDS["COMMAND_MEASURE"], 0xFF),
                            (SENSOR_COMMANDS["COMMAND_SEND_DATA"], 0),
+                           (SENSOR_COMMANDS["COMMAND_MEASURE"], 0xFF),
+                           (SENSOR_COMMANDS["COMMAND_SEND_DATA"], 0),
                            (SENSOR_COMMANDS["COMMAND_PELTIER"], 0),             # 0/1
                            (SENSOR_COMMANDS["COMMAND_SET_ANALOG_OUTPUT"], 0),   # 0-1023
                            (SENSOR_COMMANDS["COMMAND_SHUTDOWN"], 0)]
@@ -28,8 +30,14 @@ class SerialMock:
 
 serial = SerialMock()
 decoder = MessageDecoder()
+edge_position = 4
 while True:
-    received = serial.read()
+
+    try:
+        # res=s.read(s.inWaiting())
+        received = serial.read()
+    except:
+        received = None
     print("Received message:", received)
     for c in received:
         decoder.append(c)
@@ -41,7 +49,7 @@ while True:
 
         if command == SENSOR_COMMANDS['COMMAND_MEASURE']:
             # make measurement, [5, 75)
-            edge_position = random.randrange(5, 75)
+            edge_position += 1
             print("\nCommand:", SENSOR_COMMANDS.inverse[command])
             print("Payload:", payload)
             sleep(1)
@@ -97,7 +105,6 @@ while True:
             print("Payload:", payload)
 
         elif command == SENSOR_COMMANDS["COMMAND_SHUTDOWN"]:
-            print("\nCommand:", SENSOR_COMMANDS.inverse[command])
             print("End")
             break
     print("- " * 65)
