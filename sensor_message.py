@@ -1,5 +1,6 @@
 from commands import IPA_START, IPA_ESCAPE, IPA_XOR, SENSOR_COMMANDS
 
+
 # Receive data and decode message
 class MessageDecoder:
     def __init__(self):
