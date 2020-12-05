@@ -1,5 +1,4 @@
 from time import sleep
-import random
 
 from commands import SENSOR_COMMANDS
 from sensor_message import MessageDecoder, build_message
@@ -78,23 +77,23 @@ while True:
                         sensor_led_off = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 200)
                         serial.write(sensor_led_on)
                         serial.write(sensor_led_off)
-                        # print(f"Sent paper sensor led on", sensor_led_on)
-                        # print(f"Sent paper sensor led off", sensor_led_off)
+                        # print("Sent paper sensor led on", sensor_led_on)
+                        # print("Sent paper sensor led off", sensor_led_off)
 
                     else:
                         sensor_led_on = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 190)
                         sensor_led_off = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 200)
                         serial.write(sensor_led_on)
                         serial.write(sensor_led_off)
-                        # print(f"Sent no paper sensor led on", sensor_led_on)
-                        # print(f"Sent no paper sensor led off", sensor_led_off)
+                        # print("Sent no paper sensor led on", sensor_led_on)
+                        # print("Sent no paper sensor led off", sensor_led_off)
 
                 sensor_temp = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 100)   # Temp 100 degrees Celsius
                 serial.write(sensor_temp)
-                #print(f"Sent temp sensor", sensor_temp)
+                # print("Sent temp sensor", sensor_temp)
 
             serial.write(build_message(SENSOR_COMMANDS['COMMAND_SEND_DATA'], 0))
-            #print("Sent end message")
+            # print("Sent end message")
 
         elif command == SENSOR_COMMANDS['COMMAND_PELTIER']:
             print("\nCommand:", SENSOR_COMMANDS.inverse[command])
