@@ -1,11 +1,11 @@
 from time import sleep
+import serial
 
 from commands import SENSOR_COMMANDS
 from sensor_message import MessageDecoder, build_message
 
 
 class SerialMock:
-
     def __init__(self):
         self.test_cases = [(SENSOR_COMMANDS["COMMAND_MEASURE"], 0xFF),
                            (SENSOR_COMMANDS["COMMAND_SEND_DATA"], 0),
@@ -27,19 +27,18 @@ class SerialMock:
         return len(message)
 
 
-serial = SerialMock()
+serial = serial.Serial("/dev/serial0", baudrate=57600, timeout=1.0)
 decoder = MessageDecoder()
+
 edge_position = 4
 while True:
-
     try:
-        # res=s.read(s.inWaiting())
         received = serial.read()
     except:
-        received = None
-    print("Received message:", received)
+        continue
+
     for c in received:
-        decoder.append(c)
+        decoder.append(chr(c))
     message = decoder.get_message()
 
     if message:
@@ -49,9 +48,11 @@ while True:
         if command == SENSOR_COMMANDS['COMMAND_MEASURE']:
             # make measurement, [5, 75)
             edge_position += 1
+            if edge_position == 75:
+                edge_position = 0
             print("\nCommand:", SENSOR_COMMANDS.inverse[command])
             print("Payload:", payload)
-            sleep(1)
+            sleep(0.5)
             message = build_message(command, payload)
             serial.write(message)
             print(f"Sent: {message}")
@@ -63,9 +64,8 @@ while True:
             print("\nCommand:", SENSOR_COMMANDS.inverse[command])
             print("Payload:", payload)
 
-            base_message = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 100)  # Temp 100 degrees Celsius
+            base_message = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 100)  # Temp
             serial.write(base_message)
-            # print(f"Sent base message: {base_message}")
 
             is_paper = False
             for i in range(5):
@@ -77,23 +77,16 @@ while True:
                         sensor_led_off = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 200)
                         serial.write(sensor_led_on)
                         serial.write(sensor_led_off)
-                        # print("Sent paper sensor led on", sensor_led_on)
-                        # print("Sent paper sensor led off", sensor_led_off)
-
                     else:
                         sensor_led_on = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 190)
                         sensor_led_off = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 200)
                         serial.write(sensor_led_on)
                         serial.write(sensor_led_off)
-                        # print("Sent no paper sensor led on", sensor_led_on)
-                        # print("Sent no paper sensor led off", sensor_led_off)
 
-                sensor_temp = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 100)   # Temp 100 degrees Celsius
+                sensor_temp = build_message(SENSOR_COMMANDS['COMMAND_FORWARD_DATA'], 100)   # Temp displ. in I/O status
                 serial.write(sensor_temp)
-                # print("Sent temp sensor", sensor_temp)
 
             serial.write(build_message(SENSOR_COMMANDS['COMMAND_SEND_DATA'], 0))
-            # print("Sent end message")
 
         elif command == SENSOR_COMMANDS['COMMAND_PELTIER']:
             print("\nCommand:", SENSOR_COMMANDS.inverse[command])
@@ -106,4 +99,4 @@ while True:
         elif command == SENSOR_COMMANDS["COMMAND_SHUTDOWN"]:
             print("End")
             break
-    print("- " * 65)
+        print("- " * 40)

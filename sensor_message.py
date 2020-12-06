@@ -74,12 +74,13 @@ def build_message(command, payload):
     IPA_ESCAPE = 0x7D
     IPA_XOR = 0x20
 
-    message = chr(IPA_START)
+    message = bytearray(b'')
+    message.append(IPA_START)
     for byte in [byte_1, byte_2, byte_crc]:
         if byte in [IPA_ESCAPE, IPA_START]:
-            message += chr(IPA_ESCAPE)
-            message += chr(byte ^ IPA_XOR)
+            message.append(IPA_ESCAPE)
+            message.append(byte ^ IPA_XOR)
         else:
-            message += chr(byte)
-    message += chr(IPA_START)
+            message.append(byte)
+    message.append(IPA_START)
     return message
